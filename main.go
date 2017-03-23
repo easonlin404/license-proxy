@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"catchplay.com/license-proxy/proxy"
+	"license-proxy/proxy"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
