@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+
 )
 
 func main() {
@@ -18,6 +19,15 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/proxy", func(c *gin.Context) {
+		fmt.Println("------")
+		body2, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(body2))
+
+
+
 		body, status := generateLicence()
 		fmt.Println(body)
 
@@ -28,7 +38,7 @@ func main() {
 		//unmarshal()
 	})
 
-	r.Run(":9000") // listen and serve on 0.0.0.0:8080
+	r.Run(":9001") // listen and serve on 0.0.0.0:8080
 
 }
 
