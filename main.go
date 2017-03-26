@@ -2,16 +2,15 @@ package main
 
 import (
 	"bytes"
-	"license-proxy/proxy"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"gopkg.in/gin-gonic/gin.v1"
 	"io/ioutil"
+	"license-proxy/proxy"
 	"net/http"
 	"strconv"
-
 )
 
 func main() {
@@ -19,21 +18,22 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/proxy", func(c *gin.Context) {
-		fmt.Println("------")
-		body2, err := ioutil.ReadAll(c.Request.Body)
+		fmt.Println("Requst POST body:")
+		body, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(string(body2))
+		fmt.Println(string(body))
 
 
-
-		body, status := generateLicence()
-		fmt.Println(body)
+		resBody, status := generateLicense(body)
+		fmt.Println(resBody)
 
 		s, _ := strconv.Atoi(status)
 
-		c.JSON(s, unmarshal(body))
+		c.JSON(s, unmarshal(resBody))
+
+
 
 		//unmarshal()
 	})
@@ -50,46 +50,64 @@ func unmarshal(jsonText string) map[string]interface{} {
 	return f
 }
 
-
-
 type LicenseRequest struct {
 	Request   string `json:"request"`
 	Signature string `json:"signature"`
 	Signer    string `json:"signer"`
 }
 
-func genrateLicenseRequest() LicenseRequest {
-	//TODO
+type Request struct {
+	Payload   string `json:"payload"`
+	ContentId string `json:"content_id"`
+	Provider    string `json:"provider"`
+	AllowedTrackTypes    string `json:"allowed_track_types"`
+}
+
+func buildMessage(body []byte) []byte {
+	var request Request
+	request.Payload = base64.StdEncoding.EncodeToString(body)
+	request.Payload = "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"
+	fmt.Println("Payload:",request.Payload)
+
+	//TODO:
+	request.ContentId = "MDEyMzQ1Njc="
+	request.Provider="widevine_test"
+	request.AllowedTrackTypes="SD_HD"
+
+	message, _ := json.Marshal(request)
+
+	message,_ = base64.StdEncoding.DecodeString("eyJhbGxvd2VkX3RyYWNrX3R5cGVzIjogIlNEX0hEIiwgImNvbnRlbnRfaWQiOiAiTURFeU16UTFOamM9IiwgInBheWxvYWQiOiAiQ0FFU3F3NEs4d3dJQVJMckNRcXVBZ2dDRWhEbURUZExzNVp6TE5vNDM0VHZieGRPR096a3o4WUZJbzRDTUlJQkNnS0NBUUVBd0t5VGVqeHZsUTdNVFpzeVp0T294UUhxV2M1MHlQZmttQkNGd2V0YWV1aXFndE1GbXZmUndYWlJrV2Q3NXpkUGdtalJqcURCZjhRU0p4K3Y1YTZmM1FMUndObGlSSGVCc1NrVDRSMERxVEk0NExPOW94eW1oa2hPSkpLaFJmRi9wZ1dXZGVWckxEbk5RM2lxU0VCeG5iZktJeGErN2dnc1FmUUpMOTVVcEdaL21qMG1qck9NWStmMldKMnlzRzJsdkpvSTFZSS82UUxVOEJXS3owS1UzVzhEUGFuQUJ1c0xOblI5R2Z6a24vOUtrbzRLQTFSRXZ3MUR5aExsMGpBazBNVkFKQlZrR1hTMm51ZkpmNUxMU3pBcVMzdGlRNHB3Unc1Q05aUjFZSjJEeEpXUVZsTVhVN0JVY09JSyt1UzU1ak5EVnBPREFBNHpXTFFYd3lpbzh3SURBUUFCS1BBaUVvQUNTWkFOZTNiWUlFdTNtTjNJcFhFUVUxNUZqSkhwcE5veHlDTzFLSWtOSFllMkU0SDJaTmE0MWV3eUdZaDVrRzJsT0NRb0pCSWpocjNHZXk0dU1ZNWJ4Vkk4ek9aOFFubEVQSXMxdVRkN1d3UkdFR3A1ZGhBZzlUM1czMGg1U2g1K2lOTy9qMXZQS0k2VXlRaC9ZZ0Fib2ZPeFRmZXdjZ0RBWmVhTEVYd0gzSWdlOHFlbkFKd0FBNytnRjBLODNjU1gvcFllRUxaQ2hOM0ZPTEFySmlXL0k4cCtzZlFaa2JIM3FLak5KQ2xaZUhoSURKVnJRWWpmV0JaL3RBeDVGZldvRG81VE1VN2hKeHNWMUpPQWQxTWNjS1hOM0hTd1hJdlk5UHZHeElpL1k1VDhRWmZaU2RDa2pRb1JvaEZYK0JKL1EzZGdEaXkrMFczcjJXOHU0TDlRbUJxMEJRcXVBZ2dCRWhCcDQraVl1eXcvdUtPektCMkUrSXdVR0k3VnZwRUZJbzRDTUlJQkNnS0NBUUVBMlBicHRZbndVU0RwcEQ3UTJVNmgvZ21WQVcyOUhpdEFwOXpSeFgvREJWQTh6eE0vbnBpdnprN20vNFRjUWlRbXFQLzZUK1MvTFVUVkR4UTY2N3dnVEtPMFovb2xHL3BnUDlzbDRpZW9yNm5EZlFydll1YWpsTmNvS0ovVWxtVWJMb3hSUWZKOFZhM21PUzgzcXROdk44NTlRb05iTFhGK0xUaDArN3JUOHhSdjBYZ3hVTGREdnhpNWMxY0FkSGRiSjkwaWpEdUZ5NDRXWFozSzdSZlk1WTZZTzhZekNKWjFpVktzUTZPMDBKRThyU1psSmRKSERPMjUzUVMzcXdIU1JSbWwzT3FFbU9IamN2eUJnNWJpd2tFZHltUkVMTXY1aTNsZFlJRU9PREJhKzF6alBxM2Z1UDk5ZUt2M1hrRzR4Nm8xaGJsYS9JaUdpbTZ2a2V0MG9RSURBUUFCS1BBaUVvQURJb3RqTU9zL2tMTlc3NzhSa3JZbnZiYVhJS0R0cmdMZVdiNzlBZzE3NnhaY0owbTZQcWtlOVVidGlKV1ZsVW16ZVYyRWlBOEhNQWN4NDJQS3phOTM0TEY3VWliY3VOdVhZelVMUmVmaWRvNndJWDkwTnB1eENPV3FJV1JxUTloTkhLL25WWS9hUE1kTGlVZGpWa2ZCVmFGVUVsMmFXbmR6UCtFTXdTemJhUDdjL2xDc21jR3UwblAzazBITnZtWEEwdDJSRHQ1UmtiQi9PdUNuLzNCQnJ5VVFRYW5LU1Z5bnh2aUxhaEZ0UUFENmJZN29JTTVtUk0wYXVjVXhuK3FLL20xNnlvd3FRVXZSdFVqc3J3alJkWk9jK3BSdkNyRjRZRU1TK2dBeHpLTHBjYjFDSW9jajJPVEtZcG5WMzFIUkVPUndOaEtqWWpWVFNEdUtqOU5PNDF1ZGNnSGs0VHE4dUNkdHNiUEVYWkNBcFRoZ0dyaXlKZEpTd09INVRNMXZsWDBKZWNXTVQ5Qk9iYm9aOUlmdk9PQTdKVlBHUmUxTlhWTmtLYXlBS1gzMXcvY0lBQUFwTnVrWUlNdkh2ZXMvSXZPdi9tR01tVUpIUFlTSFFnQkVhNEJHQWhHd2NzemphM1VRN05USzB2M0lkWnFGZWFTYit0d1NDcjBCeHJ5NUdoY0tER052YlhCaGJubGZibUZ0WlJJSGRXNXJibTkzYmhvbkNncHRiMlJsYkY5dVlXMWxFaGxCYm1SeWIybGtJRk5FU3lCaWRXbHNkQ0JtYjNJZ2VEZzJHaGdLRVdGeVkyaHBkR1ZqZEhWeVpWOXVZVzFsRWdONE9EWWFHZ29MWkdWMmFXTmxYMjVoYldVU0MyZGxibVZ5YVdOZmVEZzJHaVFLREhCeWIyUjFZM1JmYm1GdFpSSVVjMlJyWDJkdmIyZHNaVjl3YUc5dVpWOTRPRFlhWEFvS1luVnBiR1JmYVc1bWJ4Sk9RVzVrY205cFpDOXpaR3RmWjI5dloyeGxYM0JvYjI1bFgzZzROaTluWlc1bGNtbGpYM2c0TmpvM0xqRXVNUzlPV1VNdk16YzFOakV5TWpwMWMyVnlaR1ZpZFdjdmRHVnpkQzFyWlhsekdpMEtDV1JsZG1salpWOXBaQklnUkhGMFZWVnhkbUZ2UkdwNWMyVkdVMXBwZEVsdVoyWnhlMk5oYkVSQ1V3QWFKZ29VZDJsa1pYWnBibVZmWTJSdFgzWmxjbk5wYjI0U0RuWTBMakV1TUMxaGJtUnliMmxrR2lRS0gyOWxiVjlqY25sd2RHOWZjMlZqZFhKcGRIbGZjR0YwWTJoZmJHVjJaV3dTQVRBeUNCQUJJQUFvQ3pBQUVxSUJDcDhCQ25rU0VCa1lGbDh4YUZyT3RCRWUrdHAyVW5FU0VFR0p5eFVoKzF4aWthZVJrOWM3K1Z3U0VPTzc5akNrU2xDR3FGaUhub3cxbElnU0VITzZ4WGJPSjFFRGhRM2dZN3lYTnRrU0VIVHFHNEFaSDFSQ3ZFWDJyVVZ5ckNrYURYZHBaR1YyYVc1bFgzUmxjM1FpQ0RBeE1qTTBOVFkzU09QY2xac0dFQUlhSUVVNVJFUkZOekZGTXpaQk5rSXhNREF3TVRBd01EQXdNREF3TURBd01EQXdHQUVnd2F6YXhnVXdGVGpCN3ViaUF4cUFBamNuamVQWlVEMDVuYWplZjc3NDFJcE1ITkhRcE5URld2cHRnS3N3MFZmaldQN2lhT0F1NTIxN2hFWlZzNWZybEVwWHcxNitYMjFYZSs3QXRGQU9xMStseFdkUGRTVnBMdjNNTWJIQjBOTkFtMTFheHdoeUU3S2pNZmY0TFY4Uk5UdHVwaStxZG9ycEVGaCswdWdZOXFYRWlVWDBtZFBKMWVlYWllb1psRGFVK1pnMW1KSVNOWFNMeVMwYTNISDFUeWZkaFRSRjlld3MwMk1MZEU5SDBoMk9xMnZYU2JXSTFKUi91cnc5Y0poUHpEMzRrUXU4ZnlXeG80MHIyZ2F6bXVwRE13R2tzU2dkTXJSYUxTMkt6MVNUNFg4SFVCOWYvalNqbDRpem1NWkRrTXRtaHpjMXhKQWk2MDd1c3VwNDE2YWpVWDhNakt5VUQ5Szc5NnBKUnRJPSIsICJwcm92aWRlciI6ICJ3aWRldmluZV90ZXN0In0=")
+
+	return message
+}
+
+func genrateLicenseRequest(body []byte) LicenseRequest {
 	key, _ := hex.DecodeString("1ae8ccd0e7985cc0b6203a55855a1034afc252980e970ca90e5202689f947ab9")
 	iv, _ := hex.DecodeString("d58ce954203b7c9a9a9d467f59839249")
 
-	plaintextBase64 := "ew0KICAicGF5bG9hZCIgOiAiQ0FFU2hBRUtUQWdBRWtnQUFBQUNBQUFRV1BYYmh0Yi9xNDNmM1NmdUMyVlAzcTBqZUFFQ1czZW1Ra1duMndYQ1lWT252bFdQRE5xaDhWVklCNEdtc05BOGVWVkZpZ1hrUVdJR04wR2xnTUtqcFVFU0xBb3FDaFFJQVJJUUpNUEN6bDJiVml5TVFFdHlLL2d0bVJBQkdoQXlOV1kzT0RNek1UY3lNbUpqTTJFeUdBRWd2NWlRa0FVYUlDM09OMXpWZ2VWMHJQN3cyVm1WTEdvcnFDbGNNUU80QmRiSFB5azNHc25ZIiwNCiAgInByb3ZpZGVyIiA6ICJ3aWRldmluZV90ZXN0IiwNCiAgImNvbnRlbnRfaWQiOiAiYWEiLA0KICAiY29udGVudF9rZXlfc3BlY3MiOiBbDQogICAgeyAidHJhY2tfdHlwZSI6ICJIRCIgfSwNCiAgICB7ICJ0cmFja190eXBlIjogIkFVRElPIiB9DQogIF0NCn0="
-	message, _ := base64.StdEncoding.DecodeString(plaintextBase64)
-
-	signature := proxy.GenerateSignature(key, iv, message)
+	message := buildMessage(body)
 
 	var licenseRequest LicenseRequest
-	licenseRequest.Request = plaintextBase64
-	licenseRequest.Signature = signature
+	licenseRequest.Request = base64.StdEncoding.EncodeToString(message)
+	licenseRequest.Signature = proxy.GenerateSignature(key, iv, message)
 	licenseRequest.Signer = "widevine_test"
 
 	return licenseRequest
 }
 
-func generateLicence() (string, string) {
-	licenseRequest:= genrateLicenseRequest()
+func generateLicense(body []byte) (string, string) {
+	licenseRequest := genrateLicenseRequest(body)
 	jsonStr, err := json.Marshal(licenseRequest)
 	if err != nil {
 		fmt.Println("json err:", err)
 	}
-
 
 	fmt.Println(string(jsonStr))
 	//var jsonStr = []byte(`{
 	//"request": "ewogICJwYXlsb2FkIiA6ICJDQUVTaEFFS1RBZ0FFa2dBQUFBQ0FBQVFXUFhiaHRiL3E0M2YzU2Z1QzJWUDNxMGplQUVDVzNlbVFrV24yd1hDWVZPbnZsV1BETnFoOFZWSUI0R21zTkE4ZVZWRmlnWGtRV0lHTjBHbGdNS2pwVUVTTEFvcUNoUUlBUklRSk1QQ3psMmJWaXlNUUV0eUsvZ3RtUkFCR2hBeU5XWTNPRE16TVRjeU1tSmpNMkV5R0FFZ3Y1aVFrQVVhSUMzT04xelZnZVYwclA3dzJWbVZMR29ycUNsY01RTzRCZGJIUHlrM0dzblkiLAogICJwcm92aWRlciIgOiAid2lkZXZpbmVfdGVzdCIsCiAgImNvbnRlbnRfaWQiOiAiWm10cU0yeHFZVk5rWm1Gc2EzSXphZz09IiwKICAiY29udGVudF9rZXlfc3BlY3MiOiBbCiAgICB7ICJ0cmFja190eXBlIjogIlNEIiB9LAogICAgeyAidHJhY2tfdHlwZSI6ICJIRCIgfSwKICAgIHsgInRyYWNrX3R5cGUiOiAiQVVESU8iIH0KICBdCn0K",
 	//"signature":"xPkAbb3tjOY/ybdz0tmJMq9erH9ILnS5natMZr3QEW8=",
 	//"signer": "widevine_test"
-//}`)
+	//}`)
 
 	url := "https://license.uat.widevine.com/cenc/getlicense/widevine_test"
 	fmt.Println("URL:>", url)
@@ -106,8 +124,8 @@ func generateLicence() (string, string) {
 
 	fmt.Println("response Status:", resp.Status)
 	fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	resBody, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("response Body:", string(resBody))
 
-	return string(body), resp.Status
+	return string(resBody), resp.Status
 }
