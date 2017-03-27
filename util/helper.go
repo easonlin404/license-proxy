@@ -1,4 +1,4 @@
-package proxy
+package util
 
 import (
 	"bytes"
@@ -17,7 +17,6 @@ func makeSha1(s []byte) []byte {
 }
 
 func GenerateSignature(key []byte, iv []byte, message []byte) string {
-
 	sha1_message := makeSha1(message)
 	fmt.Println("Sha1(base64):" + base64.StdEncoding.EncodeToString(sha1_message))
 
@@ -27,15 +26,10 @@ func GenerateSignature(key []byte, iv []byte, message []byte) string {
 	}
 
 	cbc := cipher.NewCBCEncrypter(block, iv)
-
 	content := PKCS5Padding(sha1_message, block.BlockSize())
-
 	crypted := make([]byte, len(content))
-
 	cbc.CryptBlocks(crypted, content)
-
 	return base64.StdEncoding.EncodeToString(crypted)
-
 }
 
 func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
