@@ -57,6 +57,10 @@ func main() {
 		var licenseResponse map[string]interface{}
 		json.Unmarshal([]byte(resBody), &licenseResponse)
 
+
+		indentJson, _ := json.Marshal(licenseResponse)
+		fmt.Println("response Body:", string(indentJson))
+
 		jsonStatus := licenseResponse["status"].(string)
 		if jsonStatus == "OK" {
 			license := licenseResponse["license"].(string)
@@ -122,7 +126,7 @@ func generateLicense(body []byte) (string, string) {
 	fmt.Println("response Status:", resp.Status)
 	fmt.Println("response Headers:", resp.Header)
 	resBody, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(resBody))
+	//fmt.Println("response Body:", string(resBody))
 
 	return string(resBody), resp.Status
 }
