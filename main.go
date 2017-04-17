@@ -99,7 +99,7 @@ func genrateLicenseRequest(body []byte) LicenseRequest {
 	var licenseRequest LicenseRequest
 	licenseRequest.Request = base64.StdEncoding.EncodeToString(message)
 	licenseRequest.Signature = util.GenerateSignature(keyByteAry, ivByteAry, message)
-	licenseRequest.Signer = "widevine_test"
+	licenseRequest.Signer = provider
 
 	return licenseRequest
 }
