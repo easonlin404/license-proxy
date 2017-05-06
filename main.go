@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"gopkg.in/gin-gonic/gin.v1"
 	"io/ioutil"
-	"license-proxy/util"
+	"github.com/easonlin404/license-proxy/util"
 	"net/http"
 	"strconv"
 )
