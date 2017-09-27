@@ -6,11 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/gin-gonic/gin.v1"
 	"io/ioutil"
-	"github.com/easonlin404/license-proxy/util"
 	"net/http"
 	"strconv"
+
+	"github.com/easonlin404/license-proxy/util"
+	"github.com/gin-gonic/gin"
 )
 
 var provider = "widevine_test"
@@ -56,7 +57,6 @@ func main() {
 
 		var licenseResponse map[string]interface{}
 		json.Unmarshal([]byte(resBody), &licenseResponse)
-
 
 		indentJson, _ := json.Marshal(licenseResponse)
 		fmt.Println("response Body:", string(indentJson))

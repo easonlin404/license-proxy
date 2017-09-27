@@ -18,7 +18,6 @@ func makeSha1(s []byte) []byte {
 
 func GenerateSignature(key []byte, iv []byte, message []byte) string {
 	sha1_message := makeSha1(message)
-	fmt.Println("Sha1(base64):" + base64.StdEncoding.EncodeToString(sha1_message))
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
